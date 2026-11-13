@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>实验室预约客服</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #f4f6f8;
+    color: #1f2933;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  /* ---------- 侧栏 ---------- */
+  aside {
+    width: 300px;
+    flex: 0 0 300px;
+    background: #ffffff;
+    border-right: 1px solid #e3e8ee;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .brand {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid #eef1f5;
+  }
+  .brand h1 { font-size: 15px; margin: 0 0 3px; letter-spacing: .5px; }
+  .brand p { margin: 0; font-size: 12px; color: #8a94a0; }
+  .panel { padding: 14px 16px; border-bottom: 1px solid #eef1f5; }
+  .panel-title {
+    font-size: 12px; color: #8a94a0; margin-bottom: 9px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel-title button {
+    border: none; background: none; color: #2f7a6f; font-size: 12px;
+    cursor: pointer; padding: 0;
+  }
+  #who { display: flex; gap: 6px; }
+  #studentNo {
+    flex: 1; min-width: 0; padding: 7px 9px; font-size: 13px;
+    border: 1px solid #d9e0e7; border-radius: 7px; outline: none;
+    background: #fbfcfd;
+  }
+  #studentNo:focus { border-color: #2f7a6f; }
+  .list { overflow-y: auto; }
+  .lab, .bk {
+    padding: 9px 10px; border-radius: 8px; cursor: pointer;
+    border: 1px solid transparent; margin-bottom: 6px;
+    transition: background .12s, border-color .12s;
+  }
+  .lab:hover, .bk:hover { background: #f5f8f9; border-color: #dde6e5; }
+  .lab-top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .lab-name { font-size: 13px; font-weight: 600; }
+  .lab-meta { font-size: 11.5px; color: #8a94a0; margin-top: 3px; }
+  .tag {
+    font-size: 10.5px; padding: 2px 7px; border-radius: 20px;
+    white-space: nowrap; font-weight: 500;
+  }
+  .t-ok { background: #e6f5ef; color: #1f7a5c; }
+  .t-full { background: #fdeceb; color: #b4403a; }
+  .t-fix { background: #fdf3e2; color: #9a6b17; }
+  .t-mute { background: #eef1f5; color: #7b8794; }
+  .bk-line { font-size: 12.5px; }
+  .bk-sub { font-size: 11.5px; color: #8a94a0; margin-top: 3px; }
+  .empty { font-size: 12px; color: #a6b0ba; padding: 4px 2px; }
+
+  /* ---------- 聊天区 ---------- */
+  main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  header {
+    height: 54px; flex: 0 0 54px; background: #fff;
+    border-bottom: 1px solid #e3e8ee;
+    display: flex; align-items: center; padding: 0 20px; gap: 10px;
+  }
+  header .dot { width: 7px; height: 7px; border-radius: 50%; background: #35c08b; }
+  header h2 { font-size: 14px; margin: 0; font-weight: 600; }
+  header .hint { font-size: 12px; color: #9aa4af; margin-left: auto; }
+
+  #chat {
+    flex: 1; overflow-y: auto; padding: 22px 24px 8px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .row { display: flex; gap: 9px; max-width: 760px; }
+  .row.me { align-self: flex-end; flex-direction: row-reverse; }
+  .avatar {
+    width: 27px; height: 27px; flex: 0 0 27px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; color: #fff; margin-top: 2px;
+  }
+  .row.bot .avatar { background: #2f7a6f; }
+  .row.me .avatar { background: #7b8794; }
+  .bubble-wrap { min-width: 0; }
+  .bubble {
+    padding: 10px 13px; border-radius: 11px; font-size: 13.5px;
+    line-height: 1.65; white-space: pre-wrap; word-break: break-word;
+  }
+  .row.bot .bubble {
+    background: #fff; border: 1px solid #e6ebf0;
+    border-top-left-radius: 3px;
+  }
+  .row.me .bubble { background: #2f7a6f; color: #fff; border-top-right-radius: 3px; }
+  .card {
+    margin-top: 8px; background: #fff; border: 1px solid #e0e7ec;
+    border-radius: 10px; padding: 11px 13px; min-width: 210px;
+  }
+  .card-title {
+    font-size: 12.5px; font-weight: 600; color: #2f7a6f;
+    margin-bottom: 7px; display: flex; justify-content: space-between; gap: 10px;
+  }
+  .card-title span { color: #9aa4af; font-weight: 400; font-size: 11px; }
+  .card dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+  .card dt { font-size: 12px; color: #8a94a0; }
+  .card dd { margin: 0; font-size: 12.5px; }
+  .typing span {
+    display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+    background: #b9c3cc; margin-right: 3px; animation: blink 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: .2s; }
+  .typing span:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%, 60%, 100% { opacity: .25 } 30% { opacity: 1 } }
+
+  /* ---------- 输入区 ---------- */
+  .composer { padding: 12px 24px 18px; background: #f4f6f8; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+  .chip {
+    font-size: 12px; padding: 6px 11px; border-radius: 20px;
+    background: #fff; border: 1px solid #dde4ea; color: #4a5560;
+    cursor: pointer; transition: all .12s;
+  }
+  .chip:hover { border-color: #2f7a6f; color: #2f7a6f; }
+  .input-box {
+    display: flex; gap: 9px; background: #fff;
+    border: 1px solid #dde4ea; border-radius: 12px; padding: 8px 8px 8px 13px;
+    align-items: flex-end;
+  }
+  .input-box:focus-within { border-color: #2f7a6f; }
+  #text {
+    flex: 1; border: none; outline: none; resize: none; font: inherit;
+    font-size: 13.5px; line-height: 1.6; max-height: 120px; background: none;
+    color: #1f2933;
+  }
+  #send {
+    border: none; background: #2f7a6f; color: #fff; font-size: 13px;
+    padding: 8px 17px; border-radius: 9px; cursor: pointer; font-weight: 500;
+  }
+  #send:disabled { background: #b6cbc7; cursor: not-allowed; }
+  ::-webkit-scrollbar { width: 7px; height: 7px; }
+  ::-webkit-scrollbar-thumb { background: #d3dbe2; border-radius: 4px; }
+  ::-webkit-scrollbar-track { background: none; }
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand">
+    <h1>实验室预约客服</h1>
+    <p>LAB Booking Assistant</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">我的学号</div>
+    <div id="who">
+      <input id="studentNo" value="20230101" placeholder="输入学号" />
+      <button id="loadMine" style="border:none;background:#2f7a6f;color:#fff;border-radius:7px;padding:7px 12px;font-size:13px;cursor:pointer;">加载</button>
+    </div>
+  </div>
+
+  <div class="panel" style="flex:0 0 auto;max-height:38%;display:flex;flex-direction:column;padding-bottom:6px;">
+    <div class="panel-title">我的预约</div>
+    <div class="list" id="bookings"><div class="empty">加载中…</div></div>
+  </div>
+
+  <div class="panel" style="flex:1;display:flex;flex-direction:column;overflow:hidden;border-bottom:none;">
+    <div class="panel-title">全部实验室</div>
+    <div class="list" id="labs"><div class="empty">加载中…</div></div>
+  </div>
+</aside>
+
+<main>
+  <header>
+    <span class="dot"></span>
+    <h2>在线咨询</h2>
+    <span class="hint">点击左侧实验室可直接咨询</span>
+  </header>
+
+  <div id="chat"></div>
+
+  <div class="composer">
+    <div class="chips" id="chips"></div>
+    <div class="input-box">
+      <textarea id="text" rows="1" placeholder="问点什么，例如：LAB-301 能坐多少人？"></textarea>
+      <button id="send">发送</button>
+    </div>
+  </div>
+</main>
+
+<script>
+const studentNoEl = document.getElementById('studentNo');
+const chatEl = document.getElementById('chat');
+const textEl = document.getElementById('text');
+const sendBtn = document.getElementById('send');
+
+let busy = false;
+
+const STATUS_CLASS = {
+  '可预约': 't-ok', '已满': 't-full', '维护中': 't-fix',
+  '待到馆': 't-ok', '使用中': 't-full', '已完成': 't-mute', '已取消': 't-mute'
+};
+
+function statusTag(s) {
+  return `<span class="tag ${STATUS_CLASS[s] || 't-mute'}">${s || '-'}</span>`;
+}
+
+/* ---------------- 消息渲染 ---------------- */
+function el(tag, cls, html) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (html !== undefined) n.innerHTML = html;
+  return n;
+}
+
+function renderCard(obj) {
+  if (!obj) return null;
+  const card = el('div', 'card');
+  const title = el('div', 'card-title');
+  title.innerHTML = `<span style="color:#2f7a6f">${obj.title || '详情'}</span><span>${obj.id || ''}</span>`;
+  card.appendChild(title);
+  const attrs = obj.attributes || {};
+  const keys = Object.keys(attrs);
+  if (keys.length) {
+    const dl = el('dl');
+    keys.forEach(k => {
+      dl.appendChild(el('dt', null, k));
+      dl.appendChild(el('dd', null, String(attrs[k] ?? '')));
+    });
+    card.appendChild(dl);
+  }
+  return card;
+}
+
+function addMessage(role, text, object) {
+  const row = el('div', 'row ' + role);
+  row.appendChild(el('div', 'avatar', role === 'me' ? '我' : 'AI'));
+  const wrap = el('div', 'bubble-wrap');
+  if (text) wrap.appendChild(el('div', 'bubble', escapeHtml(text)));
+  const card = renderCard(object);
+  if (card) wrap.appendChild(card);
+  row.appendChild(wrap);
+  chatEl.appendChild(row);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  return row;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function showTyping() {
+  const row = el('div', 'row bot');
+  row.appendChild(el('div', 'avatar', 'AI'));
+  const wrap = el('div', 'bubble-wrap');
+  wrap.appendChild(el('div', 'bubble typing', '<span></span><span></span><span></span>'));
+  row.appendChild(wrap);
+  chatEl.appendChild(row);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  return row;
+}
+
+/* ---------------- 发送 ---------------- */
+async function send(payload, displayText) {
+  if (busy) return;
+  busy = true;
+  sendBtn.disabled = true;
+  addMessage('me', displayText || payload.text || '');
+  const typing = showTyping();
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sender_id: studentNoEl.value.trim() || 'guest', ...payload })
+    });
+    typing.remove();
+    if (!res.ok) {
+      const body = await res.text();
+      addMessage('bot', `出错了（HTTP ${res.status}）\n${body.slice(0, 300)}`);
+    } else {
+      const data = await res.json();
+      (data.messages || []).forEach(m => addMessage('bot', m.text, m.object));
+    }
+  } catch (e) {
+    typing.remove();
+    addMessage('bot', '请求失败：' + e.message);
+  } finally {
+    busy = false;
+    sendBtn.disabled = false;
+    loadMine();
+  }
+}
+
+function sendText() {
+  const t = textEl.value.trim();
+  if (!t) return;
+  textEl.value = '';
+  textEl.style.height = 'auto';
+  send({ text: t }, t);
+}
+
+sendBtn.addEventListener('click', sendText);
+textEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(); }
+});
+textEl.addEventListener('input', () => {
+  textEl.style.height = 'auto';
+  textEl.style.height = Math.min(textEl.scrollHeight, 120) + 'px';
+});
+
+/* ---------------- 侧栏数据 ---------------- */
+async function loadLabs() {
+  const box = document.getElementById('labs');
+  try {
+    const labs = await (await fetch('/api/labs')).json();
+    if (!labs.length) { box.innerHTML = '<div class="empty">暂无实验室</div>'; return; }
+    box.innerHTML = '';
+    labs.forEach(lab => {
+      const a = lab.attributes || {};
+      const item = el('div', 'lab');
+      item.innerHTML = `
+        <div class="lab-top">
+          <span class="lab-name">${escapeHtml(lab.title)}</span>
+          ${statusTag(a['预约状态'])}
+        </div>
+        <div class="lab-meta">${escapeHtml(lab.id)} · ${escapeHtml(String(a['容纳人数'] ?? '-'))} 人 · ${escapeHtml(a['位置'] || '-')}</div>`;
+      item.title = '点击咨询这间实验室';
+      item.onclick = () => send(
+        { object: { type: 'lab', id: lab.id, title: lab.title, attributes: {} } },
+        `【实验室】${lab.title} ${lab.id}`
+      );
+      box.appendChild(item);
+    });
+  } catch (e) {
+    box.innerHTML = '<div class="empty">加载失败</div>';
+  }
+}
+
+async function loadMine() {
+  const box = document.getElementById('bookings');
+  const no = studentNoEl.value.trim();
+  if (!no) { box.innerHTML = '<div class="empty">请先填写学号</div>'; return; }
+  try {
+    const list = await (await fetch('/api/users/' + encodeURIComponent(no) + '/bookings')).json();
+    if (!list.length) { box.innerHTML = '<div class="empty">该学号暂无预约</div>'; return; }
+    box.innerHTML = '';
+    list.forEach(bk => {
+      const a = bk.attributes || {};
+      const item = el('div', 'bk');
+      item.innerHTML = `
+        <div class="lab-top">
+          <span class="bk-line">${escapeHtml(a['实验室'] || a['实验室编号'] || bk.title)}</span>
+          ${statusTag(a['预约状态'])}
+        </div>
+        <div class="bk-sub">${escapeHtml(bk.id)} · ${escapeHtml(a['时间'] || '')}</div>`;
+      item.title = '点击查看这条预约';
+      item.onclick = () => send(
+        { object: { type: 'booking', id: bk.id, title: bk.title || '预约', attributes: {} } },
+        `【预约】${bk.id}`
+      );
+      box.appendChild(item);
+    });
+  } catch (e) {
+    box.innerHTML = '<div class="empty">加载失败</div>';
+  }
+}
+
+document.getElementById('loadMine').onclick = loadMine;
+
+/* ---------------- 快捷提问 ---------------- */
+const CHIPS = [
+  '现在有哪些实验室可以约？',
+  'LAB-301 能坐多少人，在哪？',
+  '预约能提前几天，一次能约多久？',
+  '查一下我的预约'
+];
+const chipBox = document.getElementById('chips');
+CHIPS.forEach(t => {
+  const c = el('div', 'chip', t);
+  c.onclick = () => send({ text: t }, t);
+  chipBox.appendChild(c);
+});
+
+/* ---------------- 初始化 ---------------- */
+addMessage('bot', '你好，我是实验室预约助手。\n可以帮你查实验室信息、预约实验位、查询或取消预约。左侧点实验室或预约条也能直接问我。');
+loadLabs();
+loadMine();
+</script>
+</body>
+</html>

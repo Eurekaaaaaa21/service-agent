@@ -1,0 +1,365 @@
+slots:
+  student_no:
+    type: text
+    label: 学号
+    description: 用户的学号
+
+  lab_code:
+    type: text
+    label: 实验室编号
+    description: 实验室编号，例如 LAB-301
+
+  lab_name:
+    type: text
+    label: 实验室名称
+    description: 实验室名称
+
+  lab_capacity:
+    type: number
+    label: 容纳人数
+    description: 实验室可容纳的人数
+
+  lab_location:
+    type: text
+    label: 实验室位置
+    description: 实验室所在位置
+
+  lab_status:
+    type: text
+    label: 实验室预约状态
+    description: 实验室预约状态，取值：可预约、已满、维护中
+
+  lab_open_hours:
+    type: text
+    label: 开放时间
+    description: 实验室开放时间
+
+  lab_summary:
+    type: text
+    label: 实验室摘要
+    description: 实验室基本信息的展示文本
+
+  lab_found:
+    type: text
+    label: 实验室是否存在
+    description: 是否查询到对应实验室
+
+  booking_no:
+    type: text
+    label: 预约号
+    description: 预约条编号，例如 B20261114001
+
+  booking_date:
+    type: text
+    label: 预约日期
+    description: 预约日期，格式 YYYY-MM-DD
+
+  time_slot:
+    type: text
+    label: 时间段
+    description: 预约时间段，格式 HH:MM-HH:MM
+
+  purpose:
+    type: text
+    label: 使用用途
+    description: 使用实验室的用途
+
+  booking_status:
+    type: text
+    label: 预约状态
+    description: 预约条状态，取值：待到馆、使用中、已完成、已取消
+
+  booking_time:
+    type: text
+    label: 预约时间
+    description: 预约的日期加时间段
+
+  booking_lab_name:
+    type: text
+    label: 预约实验室名称
+    description: 预约对应的实验室名称
+
+  booking_summary:
+    type: text
+    label: 预约摘要
+    description: 预约条信息的展示文本
+
+  booking_found:
+    type: text
+    label: 预约是否存在
+    description: 是否查询到对应预约
+
+  booking_ok:
+    type: text
+    label: 预约是否创建成功
+    description: 预约创建结果
+
+  booking_error:
+    type: text
+    label: 预约失败原因
+    description: 预约创建失败的原因说明
+
+  cancel_ok:
+    type: text
+    label: 预约是否取消成功
+    description: 取消预约的处理结果
+
+  cancel_message:
+    type: text
+    label: 取消结果说明
+    description: 取消预约的展示文本
+
+flows:
+  onboarding:
+    name: 欢迎引导
+    description: 在聊天窗口初次打开时欢迎用户，并介绍实验室预约助手能提供的服务。这个 flow 通常由系统主动触发，不需要用户说具体诉求。
+    steps:
+      - id: start
+        type: start
+        next: respond
+
+      - id: respond
+        type: response
+        template:
+          text: "你好，这里是实验室预约助手。我可以帮你查实验室信息、查预约状态、预约实验室，或者取消预约。"
+        next: end
+
+      - id: end
+        type: end
+        next: []
+
+  lab_info_query:
+    name: 实验室信息查询
+    description: 用户想了解某间实验室的情况时使用，例如实验室名称、容纳人数、位置、当前能不能预约、开放时间。需要实验室编号。
+    steps:
+      - id: start
+        type: start
+        next: ask_lab_code
+
+      - id: ask_lab_code
+        type: collect
+        slot_name: lab_code
+        template:
+          text: "请告诉我实验室编号，例如 LAB-301。"
+        next: lookup_lab_info
+
+      - id: lookup_lab_info
+        type: action
+        action: action_lookup_lab_info
+        next:
+          - if: "slots.get('lab_found')"
+            then: show_lab_info
+          - else: lab_not_found
+
+      - id: show_lab_info
+        type: response
+        template:
+          text: "{{ slots.lab_summary }}"
+          object:
+            type: lab
+            id: "{{ slots.lab_code }}"
+            title: "{{ slots.lab_name }}"
+            attributes:
+              容纳人数: "{{ slots.lab_capacity }} 人"
+              位置: "{{ slots.lab_location }}"
+              预约状态: "{{ slots.lab_status }}"
+              开放时间: "{{ slots.lab_open_hours }}"
+        next: end
+
+      - id: lab_not_found
+        type: response
+        template:
+          text: "{{ slots.lab_summary }}"
+        next: end
+
+      - id: end
+        type: end
+        next: []
+
+  booking_status_query:
+    name: 预约状态查询
+    description: 用户想查询某条预约当前处理到哪一步时使用，例如是否待到馆、正在使用、已完成或已取消。需要预约号。
+    steps:
+      - id: start
+        type: start
+        next: ask_booking_no
+
+      - id: ask_booking_no
+        type: collect
+        slot_name: booking_no
+        template:
+          text: "请告诉我预约号，例如 B20261114001。"
+        next: lookup_booking_status
+
+      - id: lookup_booking_status
+        type: action
+        action: action_lookup_booking_status
+        next:
+          - if: "slots.get('booking_found')"
+            then: show_booking_status
+          - else: booking_not_found
+
+      - id: show_booking_status
+        type: response
+        template:
+          text: "你的预约当前状态是{{ slots.booking_status }}。{{ slots.booking_summary }}"
+          object:
+            type: booking
+            id: "{{ slots.booking_no }}"
+            title: "{{ slots.booking_lab_name }} 预约"
+            attributes:
+              学号: "{{ slots.student_no }}"
+              预约时间: "{{ slots.booking_time }}"
+              预约状态: "{{ slots.booking_status }}"
+        next: end
+
+      - id: booking_not_found
+        type: response
+        template:
+          text: "{{ slots.booking_summary }}"
+        next: end
+
+      - id: end
+        type: end
+        next: []
+
+  lab_booking:
+    name: 预约实验室
+    description: 用户想预约一间实验室时使用。需要依次收集学号、实验室编号、预约日期和时间段，收集齐后创建预约条。
+    steps:
+      - id: start
+        type: start
+        next: ask_student_no
+
+      - id: ask_student_no
+        type: collect
+        slot_name: student_no
+        template:
+          text: "请告诉我你的学号。"
+        next: ask_lab_code
+
+      - id: ask_lab_code
+        type: collect
+        slot_name: lab_code
+        template:
+          text: "你想预约哪间实验室？请告诉我实验室编号，例如 LAB-301。"
+        next: ask_booking_date
+
+      - id: ask_booking_date
+        type: collect
+        slot_name: booking_date
+        template:
+          text: "请告诉我预约日期，格式例如 2026-11-20。"
+        validation:
+          condition: "slots.get('booking_date', '').count('-') == 2"
+          failure_template:
+            text: "日期请按 2026-11-20 这样的格式告诉我。"
+        next: ask_time_slot
+
+      - id: ask_time_slot
+        type: collect
+        slot_name: time_slot
+        template:
+          text: "请告诉我时间段，格式例如 14:00-16:00。"
+        validation:
+          condition: "slots.get('time_slot', '').count(':') == 2 and '-' in slots.get('time_slot', '')"
+          failure_template:
+            text: "时间段请按 14:00-16:00 这样的格式告诉我。"
+        next: create_booking
+
+      - id: create_booking
+        type: action
+        action: action_create_booking
+        next:
+          - if: "slots.get('booking_ok')"
+            then: show_booking_created
+          - else: show_booking_failed
+
+      - id: show_booking_created
+        type: response
+        template:
+          text: "预约成功。{{ slots.booking_summary }} 请提前 10 分钟到实验室，入馆时出示预约号；如果需要取消，随时告诉我预约号。"
+          object:
+            type: booking
+            id: "{{ slots.booking_no }}"
+            title: "{{ slots.booking_lab_name }} 预约"
+            attributes:
+              学号: "{{ slots.student_no }}"
+              实验室编号: "{{ slots.lab_code }}"
+              预约时间: "{{ slots.booking_time }}"
+              预约状态: "{{ slots.booking_status }}"
+        next: end
+
+      - id: show_booking_failed
+        type: response
+        template:
+          text: "这次没有预约成功：{{ slots.booking_error }} 需要的话，我可以帮你换一间实验室或换一个时间段。"
+        next: end
+
+      - id: end
+        type: end
+        next: []
+
+  booking_cancel:
+    name: 取消预约
+    description: 用户想取消一条已经创建的预约时使用。需要预约号。
+    steps:
+      - id: start
+        type: start
+        next: ask_booking_no
+
+      - id: ask_booking_no
+        type: collect
+        slot_name: booking_no
+        template:
+          text: "请告诉我需要取消的预约号，例如 B20261114001。"
+        next: cancel_booking
+
+      - id: cancel_booking
+        type: action
+        action: action_cancel_booking
+        next:
+          - if: "slots.get('cancel_ok')"
+            then: show_cancel_result
+          - else: show_cancel_failed
+
+      - id: show_cancel_result
+        type: response
+        template:
+          text: "{{ slots.cancel_message }}"
+          object:
+            type: booking
+            id: "{{ slots.booking_no }}"
+            title: "{{ slots.booking_lab_name }} 预约"
+            attributes:
+              预约时间: "{{ slots.booking_time }}"
+              预约状态: "{{ slots.booking_status }}"
+        next: end
+
+      - id: show_cancel_failed
+        type: response
+        template:
+          text: "{{ slots.cancel_message }}"
+        next: end
+
+      - id: end
+        type: end
+        next: []
+
+  human_handoff:
+    name: 人工客服
+    description: 将当前对话转交给实验室管理员处理，例如设备故障、权限异常、预约记录有误。
+    steps:
+      - id: start
+        type: start
+        next: respond
+
+      - id: respond
+        type: response
+        template:
+          text: "好的，我来为你转接实验室管理员，请稍等。"
+        next: end
+
+      - id: end
+        type: end
+        next: []
